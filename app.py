@@ -3,8 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-from scipy.interpolate import griddata
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import io
 
 # 设置页面标题
 st.set_page_config(page_title="排放数据分析", layout="wide")
@@ -48,24 +49,22 @@ if uploaded_file is not None:
                   (1, 0, 0)]     # 深红色 (90-100%)
         
         positions = [0, 0.25, 0.5, 0.7, 1.0]
-        custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", list(zip(positions, colors)))
         
-        # 创建插值网格
-        def create_interpolated_plot(x, y, z, title, x_label, y_label, z_label):
-            # 创建网格
-            xi = np.linspace(x.min(), x.max(), 500)
-            yi = np.linspace(y.min(), y.max(), 500)
-            xi, yi = np.meshgrid(xi, yi)
-            
-            # 插值
-            zi = griddata((x, y), z, (xi, yi), method='linear')
-            
-            # 创建图形
-            fig = go.Figure(data=
-                go.Contour(
-                    x=xi[0], 
-                    y=yi[:,0], 
-                    z=zi,
+        # 创建三个污染物的图表
+        st.subheader("污染物转化效率分析")
+        
+        # 使用Plotly创建散点图而不是插值图，避免scipy依赖
+        pollutants = ['CO', 'THC', 'NOx']
+        efficiency_cols = ['CO转化效率', 'THC转化效率', 'NOx转化效率']
+        
+        for i, (pollutant, eff_col) in enumerate(zip(pollutants, efficiency_cols)):
+            fig = go.Figure(data=go.Scatter(
+                x=df['流量'],
+                y=df['催化器温度'],
+                mode='markers',
+                marker=dict(
+                    size=5,
+                    color=df[eff_col],
                     colorscale=[
                         [0, 'rgb(0, 0, 127)'],     # 深蓝色
                         [0.25, 'rgb(0, 0, 255)'],  # 蓝色
@@ -74,54 +73,29 @@ if uploaded_file is not None:
                         [1.0, 'rgb(255, 0, 0)']    # 深红色
                     ],
                     colorbar=dict(
-                        title=z_label,
+                        title=f"{pollutant}转化效率 (%)",
                         titleside='right'
                     ),
-                    contours=dict(
-                        start=0,
-                        end=100,
-                        size=10
-                    ),
-                    hovertemplate=
-                    '<b>流量</b>: %{x:.2f}<br>' +
-                    '<b>温度</b>: %{y:.2f}<br>' +
-                    '<b>转化效率</b>: %{z:.2f}%<br>' +
-                    '<extra></extra>'
-                )
-            )
+                    cmin=0,
+                    cmax=100,
+                    showscale=True
+                ),
+                hovertemplate=
+                '<b>流量</b>: %{x:.2f}<br>' +
+                '<b>温度</b>: %{y:.2f}<br>' +
+                '<b>转化效率</b>: %{marker.color:.2f}%<br>' +
+                '<extra></extra>'
+            ))
             
             fig.update_layout(
-                title=title,
-                xaxis_title=x_label,
-                yaxis_title=y_label,
+                title=f"{pollutant}转化效率",
+                xaxis_title="流量",
+                yaxis_title="催化器温度",
                 width=800,
                 height=600
             )
             
-            return fig
-        
-        # 创建三个污染物的图表
-        st.subheader("污染物转化效率分析")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.plotly_chart(create_interpolated_plot(
-                df['流量'], df['催化器温度'], df['CO转化效率'],
-                "CO转化效率", "流量", "催化器温度", "CO转化效率 (%)"
-            ), use_container_width=True)
-        
-        with col2:
-            st.plotly_chart(create_interpolated_plot(
-                df['流量'], df['催化器温度'], df['THC转化效率'],
-                "THC转化效率", "流量", "催化器温度", "THC转化效率 (%)"
-            ), use_container_width=True)
-        
-        with col3:
-            st.plotly_chart(create_interpolated_plot(
-                df['流量'], df['催化器温度'], df['NOx转化效率'],
-                "NOx转化效率", "流量", "催化器温度", "NOx转化效率 (%)"
-            ), use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
         
         # 显示统计数据
         st.subheader("转化效率统计")
@@ -147,6 +121,7 @@ if uploaded_file is not None:
         
     except Exception as e:
         st.error(f"处理数据时发生错误: {str(e)}")
+        st.error("请确保Excel文件格式正确：第一行为空白，第二行为列名，数据从第三行开始")
 else:
     st.info("请上传Excel数据文件以开始分析。")
 
@@ -160,5 +135,5 @@ with st.expander("使用说明"):
     2. 系统将自动计算三种污染物(CO, THC, NOx)的转化效率
     3. 转化效率计算公式：(原排 - 尾排) / 原排 × 100%
     4. 转化效率限制在0-100%范围内
-    5. 图表使用插值法填充缺失数据，形成连续表面
+    5. 图表使用散点图显示数据点，颜色表示转化效率
     """)
