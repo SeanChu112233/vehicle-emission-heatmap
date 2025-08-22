@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import io
 
 # 设置页面标题
@@ -41,61 +37,45 @@ if uploaded_file is not None:
         df['THC转化效率'] = calculate_conversion(df['THC原排'], df['THC尾排'])
         df['NOx转化效率'] = calculate_conversion(df['NOx原排'], df['NOx尾排'])
         
-        # 创建自定义颜色映射
-        colors = [(0, 0, 0.5),   # 深蓝色 (0%)
-                  (0, 0.5, 1),   # 蓝色 (25%)
-                  (0, 1, 0),     # 绿色 (50%)
-                  (1, 0.8, 0),   # 橘红色 (70%)
-                  (1, 0, 0)]     # 深红色 (90-100%)
-        
-        positions = [0, 0.25, 0.5, 0.7, 1.0]
-        
-        # 创建三个污染物的图表
+        # 创建三个污染物的图表 - 使用Streamlit原生图表
         st.subheader("污染物转化效率分析")
         
-        # 使用Plotly创建散点图而不是插值图，避免scipy依赖
         pollutants = ['CO', 'THC', 'NOx']
         efficiency_cols = ['CO转化效率', 'THC转化效率', 'NOx转化效率']
         
         for i, (pollutant, eff_col) in enumerate(zip(pollutants, efficiency_cols)):
-            fig = go.Figure(data=go.Scatter(
-                x=df['流量'],
-                y=df['催化器温度'],
-                mode='markers',
-                marker=dict(
-                    size=5,
-                    color=df[eff_col],
-                    colorscale=[
-                        [0, 'rgb(0, 0, 127)'],     # 深蓝色
-                        [0.25, 'rgb(0, 0, 255)'],  # 蓝色
-                        [0.5, 'rgb(0, 255, 0)'],   # 绿色
-                        [0.7, 'rgb(255, 165, 0)'], # 橘红色
-                        [1.0, 'rgb(255, 0, 0)']    # 深红色
-                    ],
-                    colorbar=dict(
-                        title=f"{pollutant}转化效率 (%)",
-                        titleside='right'
-                    ),
-                    cmin=0,
-                    cmax=100,
-                    showscale=True
-                ),
-                hovertemplate=
-                '<b>流量</b>: %{x:.2f}<br>' +
-                '<b>温度</b>: %{y:.2f}<br>' +
-                '<b>转化效率</b>: %{marker.color:.2f}%<br>' +
-                '<extra></extra>'
-            ))
+            st.write(f"### {pollutant}转化效率")
             
-            fig.update_layout(
-                title=f"{pollutant}转化效率",
-                xaxis_title="流量",
-                yaxis_title="催化器温度",
-                width=800,
-                height=600
+            # 创建颜色映射
+            colors = []
+            for eff in df[eff_col]:
+                if eff >= 90:
+                    colors.append('rgb(255, 0, 0)')  # 深红色
+                elif eff >= 70:
+                    colors.append('rgb(255, 165, 0)')  # 橘红色
+                elif eff >= 50:
+                    colors.append('rgb(0, 255, 0)')  # 绿色
+                elif eff >= 25:
+                    colors.append('rgb(0, 0, 255)')  # 蓝色
+                else:
+                    colors.append('rgb(0, 0, 127)')  # 深蓝色
+            
+            # 创建散点图
+            chart_data = pd.DataFrame({
+                '流量': df['流量'],
+                '温度': df['催化器温度'],
+                '转化效率': df[eff_col],
+                '颜色': colors
+            })
+            
+            st.scatter_chart(
+                chart_data,
+                x='流量',
+                y='温度',
+                color='颜色',
+                size=50,
+                use_container_width=True
             )
-            
-            st.plotly_chart(fig, use_container_width=True)
         
         # 显示统计数据
         st.subheader("转化效率统计")
@@ -118,6 +98,16 @@ if uploaded_file is not None:
             ]
         })
         st.dataframe(stats_df)
+        
+        # 添加下载处理后的数据功能
+        st.subheader("下载处理后的数据")
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="下载CSV格式数据",
+            data=csv,
+            file_name="处理后的排放数据.csv",
+            mime="text/csv"
+        )
         
     except Exception as e:
         st.error(f"处理数据时发生错误: {str(e)}")
