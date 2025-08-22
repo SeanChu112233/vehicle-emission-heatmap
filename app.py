@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import base64
+import io
 
 # 设置页面标题
 st.set_page_config(page_title="排放数据分析", layout="wide")
@@ -22,7 +24,10 @@ if uploaded_file is not None:
         
         # 计算转化效率函数
         def calculate_conversion(original, tail):
-            conversion = (original - tail) / original * 100
+            # 避免除以零错误
+            conversion = np.zeros_like(original, dtype=float)
+            mask = original > 0
+            conversion[mask] = (original[mask] - tail[mask]) / original[mask] * 100
             conversion = np.where(conversion < 0, 0, conversion)
             conversion = np.where(conversion > 100, 100, conversion)
             return conversion
@@ -34,7 +39,7 @@ if uploaded_file is not None:
         
         # 显示统计数据
         st.subheader("转化效率统计")
-        stats_df = pd.DataFrame({
+        stats_data = {
             '污染物': ['CO', 'THC', 'NOx'],
             '平均转化效率 (%)': [
                 df['CO转化效率'].mean(),
@@ -51,20 +56,33 @@ if uploaded_file is not None:
                 df['THC转化效率'].max(),
                 df['NOx转化效率'].max()
             ]
-        })
-        st.dataframe(stats_df)
+        }
+        
+        # 创建简单的表格显示
+        st.write("| 污染物 | 平均转化效率 (%) | 最小转化效率 (%) | 最大转化效率 (%) |")
+        st.write("|--------|------------------|------------------|------------------|")
+        for i in range(3):
+            st.write(f"| {stats_data['污染物'][i]} | {stats_data['平均转化效率 (%)'][i]:.2f} | {stats_data['最小转化效率 (%)'][i]:.2f} | {stats_data['最大转化效率 (%)'][i]:.2f} |")
         
         # 添加下载处理后的数据功能
         st.subheader("下载处理后的数据")
         csv = df.to_csv(index=False)
-        st.download_button(
-            label="下载CSV格式数据",
-            data=csv,
-            file_name="处理后的排放数据.csv",
-            mime="text/csv"
-        )
+        b64 = base64.b64encode(csv.encode()).decode()
+        href = f'<a href="data:file/csv;base64,{b64}" download="处理后的排放数据.csv">下载CSV格式数据</a>'
+        st.markdown(href, unsafe_allow_html=True)
         
     except Exception as e:
         st.error(f"处理数据时发生错误: {str(e)}")
+        st.error("请确保CSV文件格式正确，包含所有必需的列")
 else:
     st.info("请上传CSV数据文件以开始分析。")
+
+# 添加使用说明
+with st.expander("使用说明"):
+    st.markdown("""
+    1. 请先将Excel文件转换为CSV格式
+    2. CSV文件应包含以下列：时间, Lambda, 催化器温度, CO原排, CO尾排, THC原排, THC尾排, NOx原排, NOx尾排, 流量
+    3. 系统将自动计算三种污染物(CO, THC, NOx)的转化效率
+    4. 转化效率计算公式：(原排 - 尾排) / 原排 × 100%
+    5. 转化效率限制在0-100%范围内
+    """)
