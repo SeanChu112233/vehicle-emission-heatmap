@@ -97,8 +97,8 @@ if uploaded_file is not None:
                 # 创建图表
                 fig, ax = plt.subplots(figsize=(10, 6))
                 scatter = ax.scatter(
-                    df['MassFlow(kg/s)'], 
-                    df['T510(℃)'], 
+                    df['流量'], 
+                    df['催化器温度'], 
                     c=df[eff_col], 
                     cmap=custom_cmap, 
                     vmin=0, 
