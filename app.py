@@ -107,9 +107,9 @@ if uploaded_file is not None:
                 )
                 
                 # 设置图表属性
-                ax.set_xlabel('流量')
-                ax.set_ylabel('催化器温度')
-                ax.set_title(f'{pollutant}转化效率热点图')
+                ax.set_xlabel('MassFlow(kg/s)')
+                ax.set_ylabel('T510(℃)')
+                ax.set_title(f'{pollutant}Conversion Heatmap - Mass Flow - T510')
                 
                 # 添加颜色条
                 cbar = plt.colorbar(scatter)
