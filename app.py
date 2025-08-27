@@ -70,9 +70,9 @@ if uploaded_file is not None:
                 return conversion
             
             # 计算各污染物的转化效率
-            df['CO转化效率'] = calculate_conversion(df['CO原排'], df['CO尾排'])
-            df['THC转化效率'] = calculate_conversion(df['THC原排'], df['THC尾排'])
-            df['NOx转化效率'] = calculate_conversion(df['NOx原排'], df['NOx尾排'])
+            df['CO Conv'] = calculate_conversion(df['CO原排'], df['CO尾排'])
+            df['THC Conv'] = calculate_conversion(df['THC原排'], df['THC尾排'])
+            df['NOx Conv'] = calculate_conversion(df['NOx原排'], df['NOx尾排'])
             
             # 创建自定义颜色映射
             colors = [
@@ -89,7 +89,7 @@ if uploaded_file is not None:
             st.subheader("污染物转化效率热点图")
             
             pollutants = ['CO', 'THC', 'NOx']
-            efficiency_cols = ['CO转化效率', 'THC转化效率', 'NOx转化效率']
+            efficiency_cols = ['CO Conv', 'THC Conv', 'NOx Conv']
             
             for pollutant, eff_col in zip(pollutants, efficiency_cols):
                 st.write(f"### {pollutant}转化效率热点图")
@@ -113,7 +113,7 @@ if uploaded_file is not None:
                 
                 # 添加颜色条
                 cbar = plt.colorbar(scatter)
-                cbar.set_label('转化效率 (%)')
+                cbar.set_label('Conversion (%)')
                 
                 # 显示图表
                 st.pyplot(fig)
