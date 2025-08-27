@@ -70,9 +70,9 @@ if uploaded_file is not None:
                 return conversion
             
             # 计算各污染物的转化效率
-            df['CO转化效率'] = calculate_conversion(df['CO原排'], df['CO尾排'])
-            df['THC转化效率'] = calculate_conversion(df['THC原排'], df['THC尾排'])
-            df['NOx转化效率'] = calculate_conversion(df['NOx原排'], df['NOx尾排'])
+            df['CO Conv'] = calculate_conversion(df['CO原排'], df['CO尾排'])
+            df['THC Conv'] = calculate_conversion(df['THC原排'], df['THC尾排'])
+            df['NOx Conv'] = calculate_conversion(df['NOx原排'], df['NOx尾排'])
             
             # 创建自定义颜色映射
             colors = [
@@ -97,8 +97,8 @@ if uploaded_file is not None:
                 # 创建图表
                 fig, ax = plt.subplots(figsize=(10, 6))
                 scatter = ax.scatter(
-                    df['流量'], 
-                    df['催化器温度'], 
+                    df['MassFlow(kg/s)'], 
+                    df['T510(℃)'], 
                     c=df[eff_col], 
                     cmap=custom_cmap, 
                     vmin=0, 
